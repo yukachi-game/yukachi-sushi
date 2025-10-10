@@ -12,7 +12,7 @@
 - [マシュマロ](https://marshmallow-qa.com/sufxrwoh7z8ic2n)
 
 # ダウンロード
-- [こちらからWindows版をダウンロードして遊んでください](dist/yukachi_sushi_game.exe)
+- [こちらからWindows版をダウンロードして遊んでください](https://github.com/yukachi-game/yukachi-sushi/raw/refs/heads/main/dist/yukachi_sushi_game.exe)
 - みんなでお寿司オフ会をしましょう
 
 # 遊び方
