@@ -6,7 +6,9 @@
 </table>
 
 # 概要
-このゲームは先日デビューした新人YouTuber・[神楽月ゆか（ゆかち）](https://www.youtube.com/@KagurazukiYuka)のファンゲームです
+このゲームは先日デビューした新人YouTuber・[神楽月ゆか（ゆかち）](https://www.youtube.com/@KagurazukiYuka)のファンゲームです。  
+声が特徴的でどの配信も面白いので是非遊びに行って下さい！  
+みんなでゆかっ狐になりましょう
 - [YouTubeリンク](https://www.youtube.com/@KagurazukiYuka)
 - [X（旧Twitter）](https://x.com/KagurazukiYuka)
 - [マシュマロ](https://marshmallow-qa.com/sufxrwoh7z8ic2n)
