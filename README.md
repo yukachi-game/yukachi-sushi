@@ -14,7 +14,7 @@
 - [マシュマロ](https://marshmallow-qa.com/sufxrwoh7z8ic2n)
 
 # ダウンロード
-- [こちらからWindows版をダウンロードして遊んでください](https://github.com/yukachi-game/yukachi-sushi/releases/download/v251010/yukachi_sushi_game.zip)
+- [こちらからWindows版をダウンロードして遊んでください](https://github.com/yukachi-game/yukachi-sushi/releases/download/v251011a/yukachi_sushi_game.zip)
 - みんなでお寿司オフ会をしましょう
 
 # 遊び方
