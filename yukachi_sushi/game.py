@@ -388,6 +388,13 @@ def difficulty_params(mode:int):
                 SPEED_GROWTH=SPEED_GROWTH, SPAWN_SHRINK=SPAWN_SHRINK,
                 SPAWN_MIN=SPAWN_MIN, DURATION_SECONDS=DURATION_SECONDS)
 
+# （追加）ウィンドウ×押下の検出（元のウィンドウ名文字列を使用）
+def window_closed() -> bool:
+    try:
+        return cv.getWindowProperty("Yukakko Sushi (ESC to quit)", cv.WND_PROP_VISIBLE) < 1
+    except cv.error:
+        return True
+
 # ========= メイン =========
 def main():
     parser = argparse.ArgumentParser()
@@ -451,7 +458,6 @@ def main():
             "last_nonempty_t": start_t
         }
 
-
     game = None
 
     while True:
@@ -459,6 +465,8 @@ def main():
         if state == STATE_TITLE:
             cv.imshow("Yukakko Sushi (ESC to quit)", title_img)
             k = cv.waitKey(20) & 0xFF
+            if window_closed():
+                sb.stop_all(); cv.destroyAllWindows(); return
             if k == 27: break
             elif k != 255: state = STATE_MODE
             continue
@@ -467,6 +475,8 @@ def main():
         if state == STATE_MODE:
             cv.imshow("Yukakko Sushi (ESC to quit)", mode_img)
             k = cv.waitKey(20) & 0xFF
+            if window_closed():
+                sb.stop_all(); cv.destroyAllWindows(); return
             if k == 27:
                 state = STATE_TITLE; continue
             if k in (ord('1'), ord('2'), ord('3')):
@@ -495,15 +505,14 @@ def main():
                 cv.putText(frame, text, (tx, ty), FONT, 1.6, (255,255,255), 3, cv.LINE_AA)
 
                 # ------- 右側黒枠（2段）に数字のみ表示 -------
-                cx = W - 210          # 右黒枠の中央X（目安）
-                y_top = 250           # 上段Y（枚数）
-                y_bot = y_top + 150   # 下段Y（難易度）
+                cx = W - 210
+                y_top = 250
+                y_bot = y_top + 150
 
                 # 1) クリア枚数
                 num1 = str(game.get("cleared", 0))
                 (scale1, thick1) = (3.0, 6)
                 (tw1, th1), _ = cv.getTextSize(num1, FONT, scale1, thick1)
-                #tx1, ty1 = cx - tw1//2, y_top + th1//2
                 tx1, ty1 = W // 2 - tw1//2, y_top + th1//2
                 for dx in (-3,0,3):
                     for dy in (-3,0,3):
@@ -514,17 +523,16 @@ def main():
                 num2 = str(game.get("mode", 2))
                 (scale2, thick2) = (2.6, 6)
                 (tw2, th2), _ = cv.getTextSize(num2, FONT, scale2, thick2)
-                #tx2, ty2 = cx - tw2//2, y_bot + th2//2
-                #tx2, ty2 = W // 2 - tw2//2, y_bot + th2//2
                 tx2, ty2 = W // 2, y_bot + th2//2
                 for dx in (-3,0,3):
                     for dy in (-3,0,3):
                         cv.putText(frame, num2, (tx2+dx, ty2+dy), FONT, scale2, (0,0,0), thick2+4, cv.LINE_AA)
                 cv.putText(frame, num2, (tx2, ty2), FONT, scale2, (255,255,255), thick2, cv.LINE_AA)
-                # ----------------------------------------------
 
                 cv.imshow("Yukakko Sushi (ESC to quit)", frame)
                 k = cv.waitKey(20) & 0xFF
+                if window_closed():
+                    sb.stop_all(); cv.destroyAllWindows(); return
                 if k == 27:
                     sb.stop_bgm(); cv.destroyAllWindows(); return
                 if time.time() - show_start >= 3.0 and k != 255:
@@ -566,9 +574,8 @@ def main():
                 game["plates"].append(make_plate(now, game["base_speed"], rng, sushi_assets))
                 # 次の通常スポーンも改めて設定
                 game["next_spawn_t"] = now + rng.expovariate(1.0 / game["spawn_mean"])
-                game["last_nonempty_t"] = now   # もうゼロではないので更新
+                game["last_nonempty_t"] = now
         else:
-            # 皿が1枚でもあれば時刻を記録
             game["last_nonempty_t"] = now
 
         # スポーン（ポアソン）
@@ -577,7 +584,8 @@ def main():
             game["next_spawn_t"] = now + rng.expovariate(1.0 / game["spawn_mean"])
 
         # 狐更新
-        for fox in game["foxes"]: fox.update(dt)
+        for fox in game["foxes"]:
+            fox.update(dt)
         game["foxes"] = [f for f in game["foxes"] if f.alive]
 
         # 描画：皿（ロック中は薄い枠で強調）
@@ -586,7 +594,8 @@ def main():
                 cx, cy = int(pl['x']), int(pl['y'])
                 cv.ellipse(frame, (cx, cy), (PLATE_W//2+6, PLATE_H//2+6), 0, 0, 360, (0,80,255), 2, cv.LINE_AA)
             draw_plate(frame, pl)
-        for fox in game["foxes"]: fox.draw(frame)
+        for fox in game["foxes"]:
+            fox.draw(frame)
 
         # HUD
         cv.putText(frame, f"Score: {game['score']}", (20, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)
@@ -603,6 +612,8 @@ def main():
 
         # 入力
         key = cv.waitKey(int(1000 / FPS_TARGET)) & 0xFF
+        if window_closed():
+            sb.stop_all(); cv.destroyAllWindows(); return
         if key == 27:
             sb.stop_bgm(); state = STATE_TITLE; continue
 
@@ -611,11 +622,15 @@ def main():
             game["timeup"] = True
             state = STATE_OVER
             cv.imshow("Yukakko Sushi (ESC to quit)", frame); cv.waitKey(1)
+            if window_closed():
+                sb.stop_all(); cv.destroyAllWindows(); return
             continue
         if game["lives"] <= 0:
             game["timeup"] = False
             state = STATE_OVER
             cv.imshow("Yukakko Sushi (ESC to quit)", frame); cv.waitKey(1)
+            if window_closed():
+                sb.stop_all(); cv.destroyAllWindows(); return
             continue
 
         # ---- ロックオン入力処理 ----

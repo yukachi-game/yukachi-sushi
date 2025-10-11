@@ -20,7 +20,7 @@ REM === Build (spec resolves paths relative to this .bat/.spec) ===
 pyinstaller "sushi_game.spec"
 
 echo.
-echo ✅ Build finished. See ".\dist\yukachi_sushi_game.exe"
+echo Build finished. See ".\dist\yukachi_sushi_game.exe"
 pause
 
 popd

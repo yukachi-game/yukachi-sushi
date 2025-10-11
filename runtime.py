@@ -1,6 +1,3 @@
-# runtime_chdir.py
-# exe 実行時に作業ディレクトリをバンドル展開先へ切り替え、
-# 相対パス "assets/..." を game.py を改変せずにそのまま扱えるようにする。
 import os
 import sys
 

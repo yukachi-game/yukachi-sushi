@@ -28,18 +28,16 @@ cv2_hidden = collect_submodules('cv2')
 a = Analysis(
     [str(GAME_PATH)],
     pathex=[str(PROJECT_DIR)],
-    binaries=cv2_bins,      # pygame はフックに任せる
+    binaries=cv2_bins,
     datas=[],
     hiddenimports=cv2_hidden,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[str(SPEC_DIR / "runtime_chdir.py")],
+    runtime_hooks=[str(SPEC_DIR / "runtime.py")],
     excludes=[],
     noarchive=False
 )
 
-# ここで a.datas を 3タプルの TOC で拡張
-# assets/ はツリーごと（Tree は 3タプルTOCを返す）
 a.datas += Tree(str(ASSETS_DIR), prefix='assets')
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=None)
@@ -49,12 +47,12 @@ exe = EXE(
     a.scripts,
     a.binaries,
     a.zipfiles,
-    a.datas,   # 3要素タプルTOCのみ
+    a.datas,
     [],
     name='yukachi_sushi_game',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False  # デバッグしたいとき True
+    console=False
 )
