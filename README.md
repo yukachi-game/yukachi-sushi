@@ -33,8 +33,7 @@ $ git clone https://github.com/yukachi-game/yukachi-sushi.git
 $ cd yukachi-sushi/yukachi_sushi
 $ python game.py
 ```
-※ライブラリのインストールが必要な場合があります
-
+※Python実行環境やライブラリのインストールが必要な場合があります
 # ライセンス
 このゲームでは下記の画像素材を使用しています
 - [いらすとや](https://www.irasutoya.com/)
