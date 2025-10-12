@@ -39,3 +39,5 @@ $ python game.py
 - [いらすとや](https://www.irasutoya.com/)
 - [illustAC](https://www.ac-illust.com/main/detail.php?id=2414999)
 - [ChatGPTによる生成画像](https://chatgpt.com/)
+
+created by ani_papa01
