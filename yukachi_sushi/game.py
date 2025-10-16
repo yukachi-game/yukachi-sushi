@@ -46,7 +46,6 @@ def _tone(freq, dur, vol=0.25, wave="sine"):
         x = 2*np.abs(2*((t*freq) % 1)-1)-1
     else:
         x = np.sin(2*np.pi*freq*t)
-    # アタック/リリース
     env = np.ones_like(x)
     a = max(1, int(0.005 * SAMPLE_RATE))
     r = max(1, int(0.020 * SAMPLE_RATE))
@@ -95,7 +94,6 @@ class SoundBank:
         g  = _tone(784,  0.06, vol=0.22)
         ch = _tone(1046, 0.10, vol=0.20)
         self.sfx_clear = pygame.sndarray.make_sound(_stereo(np.concatenate([c, e, g, ch])))
-        # BGM 2.5s ループ
         dur = 2.5
         def chord(fs, d): return _mix_layers([_tone(f, d, vol=0.07, wave="tri") for f in fs])
         bass = np.concatenate([
@@ -146,7 +144,7 @@ def alpha_blit(dst_bgr, src_bgra, x, y):
     sx0 = cx0 - x0; sy0 = cy0 - y0
     sx1 = sx0 + (cx1 - cx0); sy1 = sy0 + (cy1 - cy0)
     roi_dst = dst_bgr[cy0:cy1, cx0:cx1]
-    roi_src = src_bgra[sy0:sy1, sx0:sx1]
+    roi_src = src_bgra[sy0:sy1, sx1- (cx1-cx0):sx1] if False else src_bgra[sy0:sy1, sx0:sx1]
     if roi_src.shape[2] == 4:
         src_rgb = roi_src[..., :3].astype(np.float32)
         alpha = (roi_src[..., 3:4].astype(np.float32)) / 255.0
@@ -284,7 +282,6 @@ def draw_plate(img, p):
 
 # ========= 入力判定 =========
 def handle_key(plates, ch):
-    """ロック無し時：最も左にあるヒット可能な皿を探す"""
     for p in sorted(plates, key=lambda q: q['x']):
         w = p['word']; k = p['prog']
         if k < len(w) and w[k] == ch:
@@ -293,7 +290,6 @@ def handle_key(plates, ch):
     return False, False, None
 
 def handle_key_only(target_plate, ch):
-    """ロック中：指定の1枚だけ判定"""
     if target_plate is None:
         return False, False
     w = target_plate['word']; k = target_plate['prog']
@@ -329,7 +325,9 @@ def load_mode_img():
     img = load_and_fit("assets/mode.png", (W, H))
     if img is None:
         img = np.full((H, W, 3), (30, 20, 30), np.uint8)
-        cv.putText(img, "Select Mode: 1 Easy / 2 Normal / 3 Hard", (50, H//2), FONT, 1.0, (255,255,255), 3, cv.LINE_AA)
+        cv.putText(img, "Select Mode: 0 Very Easy / 1 Easy / 2 Normal / 3 Hard / 4 Endless",
+                   (30, H//2), FONT, 0.8, (255,255,255), 2, cv.LINE_AA)
+        cv.putText(img, "Press number key (0-4)", (W//2-180, H//2+60), FONT, 0.9, (230,230,230), 2, cv.LINE_AA)
     return img
 
 def load_bg_for_mode(mode:int):
@@ -340,7 +338,6 @@ def load_bg_for_mode(mode:int):
     return fb if fb is not None else np.full((H, W, 3), (245,250,255), np.uint8)
 
 def load_gameover_img(which:int):
-    # which: 1=時間満了, 2=ライフ喪失
     fn = "assets/gameover1.png" if which == 1 else "assets/gameover2.png"
     img = load_and_fit(fn, (W, H))
     if img is None:
@@ -353,10 +350,17 @@ def load_gameover_img(which:int):
 # ========= 難易度パラメタ =========
 def difficulty_params(mode:int):
     """
-    1: Easy   2: Normal   3: Hard
-    BASE_* と DURATION_SECONDS（耐久時間）を返す
+    0: Very Easy   1: Easy   2: Normal   3: Hard   4: Endless
+    BASE_* と DURATION_SECONDS（耐久時間、エンドレスは None）を返す
     """
-    if mode == 1:
+    if mode == 0:
+        BASE_SPEED   = 95.0
+        BASE_SPAWN   = 3.50
+        SPEED_GROWTH = 0.00
+        SPAWN_SHRINK = 0.003
+        SPAWN_MIN    = 2.50
+        DURATION_SECONDS = 60
+    elif mode == 1:
         BASE_SPEED   = 130.0
         BASE_SPAWN   = 3.00
         SPEED_GROWTH = 0.00
@@ -377,6 +381,14 @@ def difficulty_params(mode:int):
         SPAWN_SHRINK = 0.018
         SPAWN_MIN    = 0.50
         DURATION_SECONDS = 120
+    elif mode == 4:
+        # エンドレス：時間制限なし（None）
+        BASE_SPEED   = 150.0
+        BASE_SPAWN   = 2.20
+        SPEED_GROWTH = 0.60
+        SPAWN_SHRINK = 0.010
+        SPAWN_MIN    = 0.60
+        DURATION_SECONDS = None
     else:
         BASE_SPEED   = 160.0
         BASE_SPAWN   = 1.60
@@ -454,7 +466,7 @@ def main():
             "time_limit": params["DURATION_SECONDS"], "timeup": False,
             "lock": None,
             "cleared": 0,          # これまでにクリアした皿の枚数
-            "mode": current_mode,  # 難易度（1/2/3）
+            "mode": current_mode,  # 難易度（0/1/2/3/4）
             "last_nonempty_t": start_t
         }
 
@@ -479,7 +491,7 @@ def main():
                 sb.stop_all(); cv.destroyAllWindows(); return
             if k == 27:
                 state = STATE_TITLE; continue
-            if k in (ord('1'), ord('2'), ord('3')):
+            if k in (ord('0'), ord('1'), ord('2'), ord('3'), ord('4')):
                 current_mode = int(chr(k))
                 params = difficulty_params(current_mode)
                 bg_img = load_bg_for_mode(current_mode)
@@ -495,7 +507,7 @@ def main():
             show_start = time.time()
             while True:
                 frame = gameover_img.copy()
-                # スコアを上部センター（Y≈140）に表示
+                # スコア表示
                 text = f"Score: {game['score']}"
                 (tw, th), _ = cv.getTextSize(text, FONT, 1.6, 3)
                 tx, ty = (W - tw)//2, 140
@@ -504,26 +516,20 @@ def main():
                         cv.putText(frame, text, (tx+dx, ty+dy), FONT, 1.6, (0,0,0), 6, cv.LINE_AA)
                 cv.putText(frame, text, (tx, ty), FONT, 1.6, (255,255,255), 3, cv.LINE_AA)
 
-                # ------- 右側黒枠（2段）に数字のみ表示 -------
-                cx = W - 210
-                y_top = 250
-                y_bot = y_top + 150
-
-                # 1) クリア枚数
+                # 右側黒帯の数字のみ（1）クリア枚数（2）難易度番号
                 num1 = str(game.get("cleared", 0))
                 (scale1, thick1) = (3.0, 6)
                 (tw1, th1), _ = cv.getTextSize(num1, FONT, scale1, thick1)
-                tx1, ty1 = W // 2 - tw1//2, y_top + th1//2
+                tx1, ty1 = W // 2 - tw1//2, 250 + th1//2
                 for dx in (-3,0,3):
                     for dy in (-3,0,3):
                         cv.putText(frame, num1, (tx1+dx, ty1+dy), FONT, scale1, (0,0,0), thick1+4, cv.LINE_AA)
                 cv.putText(frame, num1, (tx1, ty1), FONT, scale1, (255,255,255), thick1, cv.LINE_AA)
 
-                # 2) 難易度（1/2/3）
                 num2 = str(game.get("mode", 2))
                 (scale2, thick2) = (2.6, 6)
                 (tw2, th2), _ = cv.getTextSize(num2, FONT, scale2, thick2)
-                tx2, ty2 = W // 2, y_bot + th2//2
+                tx2, ty2 = W // 2, 400 + th2//2
                 for dx in (-3,0,3):
                     for dy in (-3,0,3):
                         cv.putText(frame, num2, (tx2+dx, ty2+dy), FONT, scale2, (0,0,0), thick2+4, cv.LINE_AA)
@@ -543,7 +549,11 @@ def main():
         now = time.time()
         dt = now - game["prev_t"]; game["prev_t"] = now
         elapsed = now - game["start_t"]
-        remaining = max(0.0, game["time_limit"] - elapsed)
+        # 残り時間（エンドレスは None）
+        if game["time_limit"] is None:
+            remaining = None
+        else:
+            remaining = max(0.0, game["time_limit"] - elapsed)
 
         frame = game["bg_img"].copy()
 
@@ -572,7 +582,6 @@ def main():
         if len(game["plates"]) == 0:
             if now - game["last_nonempty_t"] >= 1.0:
                 game["plates"].append(make_plate(now, game["base_speed"], rng, sushi_assets))
-                # 次の通常スポーンも改めて設定
                 game["next_spawn_t"] = now + rng.expovariate(1.0 / game["spawn_mean"])
                 game["last_nonempty_t"] = now
         else:
@@ -588,7 +597,7 @@ def main():
             fox.update(dt)
         game["foxes"] = [f for f in game["foxes"] if f.alive]
 
-        # 描画：皿（ロック中は薄い枠で強調）
+        # 描画：皿
         for pl in game["plates"]:
             if game["lock"] is pl:
                 cx, cy = int(pl['x']), int(pl['y'])
@@ -601,10 +610,14 @@ def main():
         cv.putText(frame, f"Score: {game['score']}", (20, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)
         cv.putText(frame, f"Combo: x{game['combo']}", (20, 80), FONT, 0.9, (60,60,60), 2, cv.LINE_AA)
         cv.putText(frame, f"Lives: {game['lives']}", (20, 120), FONT, 0.9, (0,0,180), 2, cv.LINE_AA)
-        cv.putText(frame, f"Time Left: {int(np.ceil(remaining))}s", (W-280, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)
+        if remaining is None:
+            cv.putText(frame, "Time Left: \u221E", (W-280, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)  # ∞
+        else:
+            cv.putText(frame, f"Time Left: {int(np.ceil(remaining))}s", (W-280, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)
 
         # FPS
-        game["fps_acc"] += 1.0/max(dt,1e-6); game["fps_cnt"] += 1
+        dt_eps = max(dt, 1e-6)
+        game["fps_acc"] += 1.0/dt_eps; game["fps_cnt"] += 1
         if game["fps_cnt"] >= 10:
             game["fps_disp"] = game["fps_acc"]/game["fps_cnt"]; game["fps_acc"] = 0.0; game["fps_cnt"] = 0
         cv.putText(frame, f"FPS: {game['fps_disp']:.1f}", (W-200, 80), FONT, 0.8, (90,90,90), 2, cv.LINE_AA)
@@ -618,7 +631,7 @@ def main():
             sb.stop_bgm(); state = STATE_TITLE; continue
 
         # ---- 終了判定 ----
-        if remaining <= 0.0:
+        if (game["time_limit"] is not None) and (remaining is not None) and (remaining <= 0.0):
             game["timeup"] = True
             state = STATE_OVER
             cv.imshow("Yukakko Sushi (ESC to quit)", frame); cv.waitKey(1)
@@ -638,7 +651,6 @@ def main():
             ch = chr(key).lower()
             if ch in string.ascii_lowercase:
                 if game["lock"] is None:
-                    # 未ロック → 最初に当たる皿にヒットしたらロック開始
                     hit, cleared, tgt = handle_key(game["plates"], ch)
                     if hit:
                         game["lock"] = tgt
@@ -651,14 +663,12 @@ def main():
                             game["plates"] = [p for p in game["plates"] if p is not tgt]
                             game["lock"] = None
                             game["cleared"] += 1
-                            # 狐
                             ground_y = H - 40 - random.randint(0,30)
                             game["foxes"].append(FoxRunner(fox_frames, fox_frame_dt, y_base=ground_y, speed=args.fox_speed))
                     else:
                         sb.play_miss()
                         game["combo"] = 0
                 else:
-                    # ロック中：その皿だけを見る
                     hit, cleared = handle_key_only(game["lock"], ch)
                     if hit:
                         sb.play_hit()
@@ -671,20 +681,18 @@ def main():
                             game["plates"] = [p for p in game["plates"] if p is not tgt]
                             game["lock"] = None
                             game["cleared"] += 1
-                            # 狐
                             ground_y = H - 40 - random.randint(0,30)
                             game["foxes"].append(FoxRunner(fox_frames, fox_frame_dt, y_base=ground_y, speed=args.fox_speed))
                     else:
                         sb.play_miss()
                         game["combo"] = 0
 
-        # 皿の数（=クリア枚数）を上部中央の黒帯位置に中央揃えで表示
+        # 皿の数（=クリア枚数）を上部中央に数字のみ表示
         num_text = str(game["cleared"])
         (scale, thick) = (2.2, 5)
         (tw, th), _ = cv.getTextSize(num_text, FONT, scale, thick)
         cx, cy = W // 2, 50
         tx, ty = cx - tw // 2, cy + th // 2
-        # アウトライン
         for dx in (-2, 0, 2):
             for dy in (-2, 0, 2):
                 cv.putText(frame, num_text, (tx+dx, ty+dy), FONT, scale, (0,0,0), thick+3, cv.LINE_AA)
