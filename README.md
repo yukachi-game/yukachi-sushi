@@ -1,7 +1,7 @@
 # お寿司だよ！ゆかっ狐集合
 
 <table>
-<tr><td><img src="materials/img1.jpg"/></td><td><img src="materials/img2.jpg"/></td></tr>
+<tr><td><img src="materials/img1.jpg"/></td><td><img src="materials/img2.png"/></td></tr>
 <tr><td><img src="materials/img3.jpg"/></td><td><img src="materials/img4.jpg"/></td></tr>
 </table>
 
@@ -14,7 +14,7 @@
 - [マシュマロ](https://marshmallow-qa.com/sufxrwoh7z8ic2n)
 
 # ダウンロード
-- [こちらからWindows版をダウンロードして遊んでください](https://github.com/yukachi-game/yukachi-sushi/releases/download/v251011a/yukachi_sushi_game.zip)
+- [こちらからWindows版をダウンロードして遊んでください](https://github.com/yukachi-game/yukachi-sushi/releases/download/v251018a/yukachi_sushi_game.zip)
 - みんなでお寿司オフ会をしましょう
 
 # 遊び方
@@ -35,6 +35,10 @@ $ cd yukachi-sushi/yukachi_sushi
 $ python3 game.py
 ```
 ※Python実行環境やライブラリのインストールが必要な場合があります
+
+# 更新履歴
+- 25年10月18日：レベル0，レベル4（エンドレスモード）を追加しました
+
 # ライセンス
 このゲームでは下記の画像素材を使用しています
 - [いらすとや](https://www.irasutoya.com/)
