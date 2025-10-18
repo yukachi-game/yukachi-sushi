@@ -29,9 +29,10 @@
 このゲームはPythonで書かれています．MacやLinux等PythonがあればWindows以外でも遊べます  
 **遊び方**
 ```bash
+$ python3 -m pip install --user numpy opencv-python pygame
 $ git clone https://github.com/yukachi-game/yukachi-sushi.git
 $ cd yukachi-sushi/yukachi_sushi
-$ python game.py
+$ python3 game.py
 ```
 ※Python実行環境やライブラリのインストールが必要な場合があります
 # ライセンス
