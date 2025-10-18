@@ -133,6 +133,11 @@ class SoundBank:
                 pass
 
 # ========= 画像ユーティリティ =========
+def format_mmss(t: float) -> str:
+    m = int(t // 60)
+    s = int(t % 60)
+    return f"{m:02d}:{s:02d}"
+
 def alpha_blit(dst_bgr, src_bgra, x, y):
     h, w = src_bgra.shape[:2]
     x0, y0 = int(x), int(y)
@@ -383,9 +388,9 @@ def difficulty_params(mode:int):
         DURATION_SECONDS = 120
     elif mode == 4:
         # エンドレス：時間制限なし（None）
-        BASE_SPEED   = 150.0
-        BASE_SPAWN   = 2.20
-        SPEED_GROWTH = 0.60
+        BASE_SPEED   = 95.0
+        BASE_SPAWN   = 3.50
+        SPEED_GROWTH = 0.80
         SPAWN_SHRINK = 0.010
         SPAWN_MIN    = 0.60
         DURATION_SECONDS = None
@@ -467,7 +472,8 @@ def main():
             "lock": None,
             "cleared": 0,          # これまでにクリアした皿の枚数
             "mode": current_mode,  # 難易度（0/1/2/3/4）
-            "last_nonempty_t": start_t
+            "last_nonempty_t": start_t,
+            "elapsed_total": 0.0   # 結果画面用に保存しておく経過時間
         }
 
     game = None
@@ -516,6 +522,18 @@ def main():
                         cv.putText(frame, text, (tx+dx, ty+dy), FONT, 1.6, (0,0,0), 6, cv.LINE_AA)
                 cv.putText(frame, text, (tx, ty), FONT, 1.6, (255,255,255), 3, cv.LINE_AA)
 
+                # 経過時間表示（mm:ss）
+                num2 = str(game.get("mode", 2))
+                if "4" == num2:
+                    etxt = f"Time: {format_mmss(game.get('elapsed_total', 0.0))}"
+                    (twE, thE), _ = cv.getTextSize(etxt, FONT, 1.2, 2)
+                    txE, tyE = (W - twE)//2, ty + 50
+                    for dx in (-2,0,2):
+                        for dy in (-2,0,2):
+                            cv.putText(frame, etxt, (txE+dx, tyE+dy), FONT, 1.2, (0,0,0), 5, cv.LINE_AA)
+                    cv.putText(frame, etxt, (txE, tyE), FONT, 1.2, (255,255,255), 2, cv.LINE_AA)
+
+
                 # 右側黒帯の数字のみ（1）クリア枚数（2）難易度番号
                 num1 = str(game.get("cleared", 0))
                 (scale1, thick1) = (3.0, 6)
@@ -530,10 +548,17 @@ def main():
                 (scale2, thick2) = (2.6, 6)
                 (tw2, th2), _ = cv.getTextSize(num2, FONT, scale2, thick2)
                 tx2, ty2 = W // 2, 400 + th2//2
-                for dx in (-3,0,3):
-                    for dy in (-3,0,3):
-                        cv.putText(frame, num2, (tx2+dx, ty2+dy), FONT, scale2, (0,0,0), thick2+4, cv.LINE_AA)
-                cv.putText(frame, num2, (tx2, ty2), FONT, scale2, (255,255,255), thick2, cv.LINE_AA)
+                if not num2 == "4":
+                    for dx in (-3,0,3):
+                        for dy in (-3,0,3):
+                            cv.putText(frame, num2, (tx2+dx, ty2+dy), FONT, scale2, (0,0,0), thick2+4, cv.LINE_AA)
+                    cv.putText(frame, num2, (tx2, ty2), FONT, scale2, (255,255,255), thick2, cv.LINE_AA)
+                else:
+                    for dx in (-3,0,3):
+                        for dy in (-3,0,3):
+                            cv.putText(frame, "Endless!", (tx2+dx-150, ty2+dy), FONT, scale2, (0,0,0), thick2+20, cv.LINE_AA)
+                    cv.putText(frame, "Endless!", (tx2-150, ty2), FONT, scale2, (255,255,255), thick2, cv.LINE_AA)
+
 
                 cv.imshow("Yukakko Sushi (ESC to quit)", frame)
                 k = cv.waitKey(20) & 0xFF
@@ -610,8 +635,9 @@ def main():
         cv.putText(frame, f"Score: {game['score']}", (20, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)
         cv.putText(frame, f"Combo: x{game['combo']}", (20, 80), FONT, 0.9, (60,60,60), 2, cv.LINE_AA)
         cv.putText(frame, f"Lives: {game['lives']}", (20, 120), FONT, 0.9, (0,0,180), 2, cv.LINE_AA)
-        if remaining is None:
-            cv.putText(frame, "Time Left: \u221E", (W-280, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)  # ∞
+
+        if remaining is None and game["mode"] == 4:
+            cv.putText(frame, f"Elapsed: {format_mmss(elapsed)}", (W-280, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)
         else:
             cv.putText(frame, f"Time Left: {int(np.ceil(remaining))}s", (W-280, 40), FONT, 0.9, (30,30,30), 2, cv.LINE_AA)
 
@@ -633,6 +659,7 @@ def main():
         # ---- 終了判定 ----
         if (game["time_limit"] is not None) and (remaining is not None) and (remaining <= 0.0):
             game["timeup"] = True
+            game["elapsed_total"] = elapsed  # ★追加
             state = STATE_OVER
             cv.imshow("Yukakko Sushi (ESC to quit)", frame); cv.waitKey(1)
             if window_closed():
@@ -640,6 +667,7 @@ def main():
             continue
         if game["lives"] <= 0:
             game["timeup"] = False
+            game["elapsed_total"] = elapsed  # ★追加
             state = STATE_OVER
             cv.imshow("Yukakko Sushi (ESC to quit)", frame); cv.waitKey(1)
             if window_closed():
